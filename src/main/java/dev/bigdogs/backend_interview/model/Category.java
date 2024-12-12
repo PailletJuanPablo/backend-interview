@@ -2,7 +2,7 @@ package dev.bigdogs.backend_interview.model;
 
 
 import jakarta.persistence.CascadeType;
-import org.springframework.data.annotation.Id;
+import jakarta.persistence.Id;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
