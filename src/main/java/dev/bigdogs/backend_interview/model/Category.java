@@ -1,21 +1,22 @@
 package dev.bigdogs.backend_interview.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
-import jakarta.persistence.Id;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-
-import java.util.List;
-import java.util.ArrayList;
 
 /**
  * Represents a category in a hierarchical catalog.
@@ -49,6 +50,7 @@ public class Category {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
+    @JsonBackReference
     private Category parent;
 
     /**
@@ -56,6 +58,7 @@ public class Category {
      * The mappedBy attribute points to the 'parent' field in this same entity.
      */
     @OneToMany(mappedBy = "parent", cascade = {CascadeType.ALL}, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonManagedReference
     private List<Category> subcategories = new ArrayList<>();
 
     // Getters and setters

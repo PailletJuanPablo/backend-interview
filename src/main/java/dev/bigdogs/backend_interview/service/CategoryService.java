@@ -1,19 +1,22 @@
 package dev.bigdogs.backend_interview.service;
 
-import dev.bigdogs.backend_interview.model.Category;
-import dev.bigdogs.backend_interview.repository.CategoryRepository;
-import dev.bigdogs.backend_interview.exception.CategoryNotFoundException;
-import dev.bigdogs.backend_interview.exception.InvalidCategoryOperationException;
-
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.ArrayList;
+import dev.bigdogs.backend_interview.dto.CategoryDTO;
+import dev.bigdogs.backend_interview.dto.CategoryTreeDTO;
+import dev.bigdogs.backend_interview.dto.CreateCategoryDTO;
+import dev.bigdogs.backend_interview.dto.UpdateCategoryDTO;
+import dev.bigdogs.backend_interview.exception.CategoryNotFoundException;
+import dev.bigdogs.backend_interview.exception.InvalidCategoryOperationException;
+import dev.bigdogs.backend_interview.model.Category;
+import dev.bigdogs.backend_interview.repository.CategoryRepository;
 
 /**
  * Service layer for managing Category entities.
@@ -51,92 +54,120 @@ public class CategoryService {
     /**
      * Creates a new root category.
      *
-     * @param name the root category name
-     * @return the created category
+     * @param createCategoryDTO the DTO containing category data
+     * @return the created category DTO
      */
     @Transactional
-    public Category createRootCategory(final String name) {
-        LOGGER.debug("Creating a new root category with name: {}", name);
+    public CategoryDTO createRootCategory(final CreateCategoryDTO createCategoryDTO) {
+        LOGGER.debug("Creating a new root category with name: {}", createCategoryDTO.getName());
 
-        if (categoryRepository.existsByNameAndParentIsNull(name)) {
+        if (categoryRepository.existsByNameAndParentIsNull(createCategoryDTO.getName())) {
             LOGGER.error(ERROR_ROOT_CATEGORY_EXISTS);
             throw new InvalidCategoryOperationException(ERROR_ROOT_CATEGORY_EXISTS);
         }
 
         Category category = new Category();
-        category.setName(name);
+        category.setName(createCategoryDTO.getName());
         category.setActive(null);
 
         Category savedCategory = categoryRepository.save(category);
         LOGGER.info("Root category created with id: {}", savedCategory.getId());
-        return savedCategory;
+
+        CategoryDTO categoryDTO = new CategoryDTO();
+        categoryDTO.setId(savedCategory.getId());
+        categoryDTO.setName(savedCategory.getName());
+        categoryDTO.setActive(savedCategory.getActive());
+        categoryDTO.setParentId(null);
+        return categoryDTO;
     }
 
     /**
      * Creates a new subcategory under an existing parent category.
      * The subcategory will be active by default.
      *
-     * @param name the subcategory name
-     * @param parentId the ID of the parent category
-     * @return the created subcategory
+     * @param createCategoryDTO the DTO containing subcategory data
+     * @return the created subcategory DTO
      */
     @Transactional
-    public Category createSubcategory(final String name, final Long parentId) {
-        LOGGER.debug("Creating subcategory '{}' under parent with id: {}", name, parentId);
+    public CategoryDTO createSubcategory(final CreateCategoryDTO createCategoryDTO) {
+        LOGGER.debug("Creating subcategory '{}' under parent with id: {}", createCategoryDTO.getName(), createCategoryDTO.getParentId());
 
-        Category parent = categoryRepository.findById(parentId)
+        Category parent = categoryRepository.findById(createCategoryDTO.getParentId())
             .orElseThrow(() -> new CategoryNotFoundException(ERROR_PARENT_NOT_FOUND));
 
-        if (categoryRepository.existsByNameAndParent(name, parent)) {
+        if (categoryRepository.existsByNameAndParent(createCategoryDTO.getName(), parent)) {
             LOGGER.error(ERROR_DUPLICATE_NAME_UNDER_PARENT);
             throw new InvalidCategoryOperationException(ERROR_DUPLICATE_NAME_UNDER_PARENT);
         }
 
         Category subcategory = new Category();
-        subcategory.setName(name);
+        subcategory.setName(createCategoryDTO.getName());
         subcategory.setParent(parent);
         subcategory.setActive(Boolean.TRUE);
 
         Category savedSubcategory = categoryRepository.save(subcategory);
-        LOGGER.info("Subcategory created with id: {} under parent id: {}", savedSubcategory.getId(), parentId);
-        return savedSubcategory;
+        LOGGER.info("Subcategory created with id: {} under parent id: {}", savedSubcategory.getId(), createCategoryDTO.getParentId());
+
+        CategoryDTO categoryDTO = new CategoryDTO();
+        categoryDTO.setId(savedSubcategory.getId());
+        categoryDTO.setName(savedSubcategory.getName());
+        categoryDTO.setActive(savedSubcategory.getActive());
+        categoryDTO.setParentId(createCategoryDTO.getParentId());
+        return categoryDTO;
     }
 
     /**
      * Retrieves all ancestors and descendants of a specific category.
      *
      * @param categoryId the ID of the category
-     * @return a list containing ancestors, the category itself, and its descendants
+     * @return a CategoryTreeDTO containing ancestors, the category itself, and its descendants
      */
     @Transactional(readOnly = true)
-    public List<Category> getAncestorsAndDescendants(final Long categoryId) {
+    public CategoryTreeDTO getAncestorsAndDescendants(final Long categoryId) {
         LOGGER.debug("Retrieving ancestors and descendants for category id: {}", categoryId);
 
         Category category = categoryRepository.findById(categoryId)
             .orElseThrow(() -> new CategoryNotFoundException(ERROR_CATEGORY_NOT_FOUND));
 
-        List<Category> ancestors = getAncestors(category);
-        List<Category> descendants = getDescendants(category);
-
-        List<Category> result = new ArrayList<>();
-        result.addAll(ancestors);
-        result.add(category);
-        result.addAll(descendants);
-
+        CategoryTreeDTO treeDTO = mapToTreeDTO(category);
         LOGGER.debug("Ancestors and descendants retrieved for category id: {}", categoryId);
-        return result;
+        return treeDTO;
+    }
+
+    /**
+     * Maps a Category entity to CategoryTreeDTO recursively.
+     *
+     * @param category the Category entity
+     * @return the mapped CategoryTreeDTO
+     */
+    private CategoryTreeDTO mapToTreeDTO(Category category) {
+        CategoryTreeDTO dto = new CategoryTreeDTO();
+        dto.setId(category.getId());
+        dto.setName(category.getName());
+        dto.setActive(category.getActive());
+        dto.setParentId(category.getParent() != null ? category.getParent().getId() : null);
+
+        if (category.getSubcategories() != null && !category.getSubcategories().isEmpty()) {
+            List<CategoryTreeDTO> subDTOs = new ArrayList<>();
+            for (Category sub : category.getSubcategories()) {
+                subDTOs.add(mapToTreeDTO(sub));
+            }
+            dto.setSubcategories(subDTOs);
+        }
+
+        return dto;
     }
 
     /**
      * Updates the 'active' state of a subcategory.
      *
      * @param categoryId the ID of the subcategory
-     * @param active the new active state
-     * @return the updated category
+     * @param updateCategoryDTO the DTO containing the new active state
+     * @return the updated category DTO
      */
     @Transactional
-    public Category updateActiveState(final Long categoryId, final Boolean active) {
-        LOGGER.debug("Updating 'active' state for category id: {} to {}", categoryId, active);
+    public CategoryDTO updateActiveState(final Long categoryId, final UpdateCategoryDTO updateCategoryDTO) {
+        LOGGER.debug("Updating 'active' state for category id: {} to {}", categoryId, updateCategoryDTO.getActive());
 
         Category category = categoryRepository.findById(categoryId)
             .orElseThrow(() -> new CategoryNotFoundException(ERROR_CATEGORY_NOT_FOUND));
@@ -146,10 +177,16 @@ public class CategoryService {
             throw new InvalidCategoryOperationException(ERROR_ACTIVE_ON_ROOT);
         }
 
-        category.setActive(active);
+        category.setActive(updateCategoryDTO.getActive());
         Category updatedCategory = categoryRepository.save(category);
-        LOGGER.info("'active' state updated for category id: {} to {}", categoryId, active);
-        return updatedCategory;
+        LOGGER.info("'active' state updated for category id: {} to {}", categoryId, updateCategoryDTO.getActive());
+
+        CategoryDTO categoryDTO = new CategoryDTO();
+        categoryDTO.setId(updatedCategory.getId());
+        categoryDTO.setName(updatedCategory.getName());
+        categoryDTO.setActive(updatedCategory.getActive());
+        categoryDTO.setParentId(updatedCategory.getParent() != null ? updatedCategory.getParent().getId() : null);
+        return categoryDTO;
     }
 
     /**
