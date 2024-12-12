@@ -8,7 +8,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class InvalidCategoryOperationException extends RuntimeException {
-    public InvalidCategoryOperationException(final String message) {
+    public InvalidCategoryOperationException() {
+        super("Invalid category operation.");
+    }
+
+    public InvalidCategoryOperationException(String message) {
         super(message);
     }
 }

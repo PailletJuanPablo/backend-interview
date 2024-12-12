@@ -38,12 +38,6 @@ public class CategoryService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CategoryService.class);
 
-    private static final String ERROR_ROOT_CATEGORY_EXISTS = "A root category with the given name already exists.";
-    private static final String ERROR_PARENT_NOT_FOUND = "Parent category not found.";
-    private static final String ERROR_CATEGORY_NOT_FOUND = "Category not found.";
-    private static final String ERROR_ACTIVE_ON_ROOT = "'active' state cannot be updated on a root category.";
-    private static final String ERROR_DUPLICATE_NAME_UNDER_PARENT = "A subcategory with the given name already exists under the specified parent.";
-
     private final CategoryRepository categoryRepository;
 
     @Autowired
@@ -62,8 +56,8 @@ public class CategoryService {
         LOGGER.debug("Creating a new root category with name: {}", createCategoryDTO.getName());
 
         if (categoryRepository.existsByNameAndParentIsNull(createCategoryDTO.getName())) {
-            LOGGER.error(ERROR_ROOT_CATEGORY_EXISTS);
-            throw new InvalidCategoryOperationException(ERROR_ROOT_CATEGORY_EXISTS);
+            LOGGER.error("A root category with the given name already exists.");
+            throw new InvalidCategoryOperationException();
         }
 
         Category category = new Category();
@@ -93,11 +87,11 @@ public class CategoryService {
         LOGGER.debug("Creating subcategory '{}' under parent with id: {}", createCategoryDTO.getName(), createCategoryDTO.getParentId());
 
         Category parent = categoryRepository.findById(createCategoryDTO.getParentId())
-            .orElseThrow(() -> new CategoryNotFoundException(ERROR_PARENT_NOT_FOUND));
+            .orElseThrow(CategoryNotFoundException::new);
 
         if (categoryRepository.existsByNameAndParent(createCategoryDTO.getName(), parent)) {
-            LOGGER.error(ERROR_DUPLICATE_NAME_UNDER_PARENT);
-            throw new InvalidCategoryOperationException(ERROR_DUPLICATE_NAME_UNDER_PARENT);
+            LOGGER.error("A subcategory with the given name already exists under the specified parent.");
+            throw new InvalidCategoryOperationException();
         }
 
         Category subcategory = new Category();
@@ -127,7 +121,7 @@ public class CategoryService {
         LOGGER.debug("Retrieving ancestors and descendants for category id: {}", categoryId);
 
         Category category = categoryRepository.findById(categoryId)
-            .orElseThrow(() -> new CategoryNotFoundException(ERROR_CATEGORY_NOT_FOUND));
+            .orElseThrow(CategoryNotFoundException::new);
 
         CategoryTreeDTO treeDTO = mapToTreeDTO(category);
         LOGGER.debug("Ancestors and descendants retrieved for category id: {}", categoryId);
@@ -170,11 +164,11 @@ public class CategoryService {
         LOGGER.debug("Updating 'active' state for category id: {} to {}", categoryId, updateCategoryDTO.getActive());
 
         Category category = categoryRepository.findById(categoryId)
-            .orElseThrow(() -> new CategoryNotFoundException(ERROR_CATEGORY_NOT_FOUND));
+            .orElseThrow(CategoryNotFoundException::new);
 
         if (category.getParent() == null) {
-            LOGGER.error(ERROR_ACTIVE_ON_ROOT);
-            throw new InvalidCategoryOperationException(ERROR_ACTIVE_ON_ROOT);
+            LOGGER.error("'active' state cannot be updated on a root category.");
+            throw new InvalidCategoryOperationException();
         }
 
         category.setActive(updateCategoryDTO.getActive());
@@ -199,7 +193,7 @@ public class CategoryService {
         LOGGER.debug("Deleting category with id: {}", categoryId);
 
         Category category = categoryRepository.findById(categoryId)
-            .orElseThrow(() -> new CategoryNotFoundException(ERROR_CATEGORY_NOT_FOUND));
+            .orElseThrow(CategoryNotFoundException::new);
 
         categoryRepository.delete(category);
         LOGGER.info("Category with id: {} deleted successfully.", categoryId);
