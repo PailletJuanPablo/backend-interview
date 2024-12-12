@@ -139,5 +139,4 @@ public class CategoryControllerTest {
         verify(categoryService, times(1)).deleteCategory(categoryId);
     }
 
-    // Additional tests for error scenarios can be added similarly
 }

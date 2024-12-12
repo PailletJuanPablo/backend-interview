@@ -72,5 +72,4 @@ public class CategoryControllerIntegrationTest {
             .andExpect(status().isNotFound());
     }
 
-    // Additional integration tests can be added similarly
 }
