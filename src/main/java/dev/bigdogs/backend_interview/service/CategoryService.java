@@ -194,4 +194,16 @@ public class CategoryService {
         }
         return descendants;
     }
+
+    public Category saveCategory(Category category) {
+        return categoryRepository.save(category);
+    }
+
+    public Category findCategoryById(Long id) {
+        return categoryRepository.findById(id).orElse(null);
+    }
+
+    public void deleteCategory(Category category) {
+        categoryRepository.delete(category);
+    }
 }

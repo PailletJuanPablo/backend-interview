@@ -1,9 +1,11 @@
 package dev.bigdogs.backend_interview.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import dev.bigdogs.backend_interview.model.Category;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import dev.bigdogs.backend_interview.model.Category;
 
 /**
  * Repository interface for managing Category entities.
