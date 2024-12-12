@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import dev.bigdogs.backend_interview.model.Category;
 
@@ -15,6 +16,7 @@ import dev.bigdogs.backend_interview.model.Category;
  * - Check the existence of categories under specific conditions.
  * - Retrieve lists of categories by their parent.
  */
+@Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     /**

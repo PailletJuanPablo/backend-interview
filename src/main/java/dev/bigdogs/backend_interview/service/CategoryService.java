@@ -38,7 +38,8 @@ public class CategoryService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CategoryService.class);
 
-    private final CategoryRepository categoryRepository;
+    @Autowired
+    private CategoryRepository categoryRepository; // Ensure this is properly injected
 
     @Autowired
     public CategoryService(final CategoryRepository categoryRepository) {
